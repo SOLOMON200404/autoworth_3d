@@ -129,18 +129,18 @@ plt.tight_layout(); plt.savefig(f"{OUT}/segments.png", dpi=150); plt.show()
 # %%
 def build(model): return Pipeline([("p", prep(scale=False)), ("m", model)])
 cands = {
-  "Bagging: Random Forest": (build(RandomForestRegressor(random_state=RNG, n_jobs=-1)),
+  "Bagging: Random Forest": (build(RandomForestRegressor(random_state=RNG, n_jobs=1)),
       {"m__n_estimators":[200,400], "m__max_depth":[None,15,25], "m__min_samples_leaf":[1,2,4], "m__max_features":[0.5,0.8,1.0]}),
   "Boosting: Gradient Boosting": (build(GradientBoostingRegressor(random_state=RNG)),
       {"m__n_estimators":[200,400], "m__learning_rate":[0.03,0.05,0.1], "m__max_depth":[3,4,5], "m__subsample":[0.7,0.9,1.0]}),
-  "Boosting: XGBoost": (build(XGBRegressor(random_state=RNG, n_jobs=-1, tree_method="hist")),
+  "Boosting: XGBoost": (build(XGBRegressor(random_state=RNG, n_jobs=1, tree_method="hist")),
       {"m__n_estimators":[300,600], "m__learning_rate":[0.03,0.05,0.1], "m__max_depth":[4,6,8], "m__subsample":[0.7,0.9], "m__colsample_bytree":[0.7,0.9,1.0]}),
 }
 tuned = {}
 for name, (pipe, grid) in cands.items():
     base = pipe.fit(Xtr, ytr)
     base_rmse = rmse_inr(yte, base.predict(Xte))
-    s = RandomizedSearchCV(pipe, grid, n_iter=int(os.environ.get("N_ITER", 12)), cv=3, scoring="neg_root_mean_squared_error", random_state=RNG, n_jobs=-1).fit(Xtr, ytr)
+    s = RandomizedSearchCV(pipe, grid, n_iter=int(os.environ.get("N_ITER", 12)), cv=3, scoring="neg_root_mean_squared_error", random_state=RNG, n_jobs=1).fit(Xtr, ytr)
     p = s.best_estimator_.predict(Xte)
     tuned[name] = s.best_estimator_
     results.append((name + " (default)", base_rmse, r2_score(yte, base.predict(Xte))))

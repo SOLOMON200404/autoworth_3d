@@ -7,7 +7,7 @@ RUN pip install -r requirements.txt
 COPY pipeline.py .
 COPY data ./data
 # Train inside the image so the model always matches the installed library versions
-ARG N_ITER=12
+ARG N_ITER=3
 RUN N_ITER=$N_ITER python pipeline.py > train.log 2>&1 && tail -4 train.log
 COPY app ./app
 RUN useradd -m appuser && chown -R appuser /srv
