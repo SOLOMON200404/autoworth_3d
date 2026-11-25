@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: autoworth
+    runtime: docker
+    plan: free
+    healthCheckPath: /health

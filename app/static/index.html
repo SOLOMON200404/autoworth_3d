@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoWorth – Used Car Fair-Price Bot</title>
+<meta name="description" content="AI-powered used car fair-price estimator with interactive 3D visuals, trained on CarDekho listings.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+<script type="importmap">
+{ "imports": { "three": "/static/vendor/three.module.min.js", "three/addons/": "/static/vendor/" } }
+</script>
+</head>
+<body>
+<nav class="nav">
+  <a class="brand" href="#top"><span class="dot"></span>AutoWorth</a>
+  <div class="links">
+    <a href="#studio">Estimator</a><a href="#cloud">Market map</a><a href="#models">Models</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <canvas id="heroCanvas" aria-hidden="true"></canvas>
+  <div class="hero-copy">
+    <span class="eyebrow">AI · 3D · CarDekho data</span>
+    <h1>Know what a used car<br><em>is truly worth.</em></h1>
+    <p>A machine-learning price engine trained on thousands of real listings. Configure a car, watch it come alive in 3D, and get a fair-price range in seconds.</p>
+    <div class="cta">
+      <a class="btn primary" href="#studio">Estimate a price</a>
+      <a class="btn ghost" href="#cloud">Explore the market</a>
+    </div>
+    <div class="stats" id="heroStats"></div>
+  </div>
+  <a class="scroll" href="#studio" aria-label="Scroll to estimator"><span></span></a>
+</header>
+
+<main>
+<section class="studio" id="studio">
+  <div class="section-head">
+    <span class="eyebrow">Estimator</span>
+    <h2>Configure your car</h2>
+    <p>Prices update live as you change the details. The 3D car reshapes itself to match engine size and power.</p>
+  </div>
+
+  <div class="studio-grid">
+    <div class="col-left">
+      <form id="form" class="glass form" autocomplete="off">
+        <div class="row2">
+          <label>Brand<select id="brand"></select></label>
+          <label>Fuel<select id="fuel"></select></label>
+        </div>
+        <div class="row2">
+          <label>Transmission<select id="transmission"></select></label>
+          <label>Seller type<select id="seller_type"></select></label>
+        </div>
+        <div class="row2">
+          <label>Owner<select id="owner"></select></label>
+          <label>Seats<select id="seats"></select></label>
+        </div>
+        <label class="rng">Year <output id="o_year"></output><input type="range" id="year" min="1995" max="2026" step="1"></label>
+        <label class="rng">Kilometres driven <output id="o_km"></output><input type="range" id="km_driven" min="0" max="300000" step="1000"></label>
+        <label class="rng">Engine <output id="o_engine"></output><input type="range" id="engine" min="600" max="3500" step="50"></label>
+        <label class="rng">Max power <output id="o_max_power"></output><input type="range" id="max_power" min="35" max="250" step="1"></label>
+        <label class="rng">Mileage <output id="o_mileage"></output><input type="range" id="mileage" min="8" max="35" step="0.5"></label>
+        <label>Seller's asking price (₹, optional)
+          <input type="number" id="asking" min="0" step="10000" placeholder="e.g. 550000"></label>
+        <div class="colors" id="colors" role="radiogroup" aria-label="Car colour"></div>
+        <button class="btn primary wide" type="submit">Estimate fair price</button>
+      </form>
+    </div>
+
+    <div class="col-right">
+      <div class="stage glass">
+        <canvas id="carCanvas" aria-label="Interactive 3D car"></canvas>
+        <div class="stage-hud">
+          <span class="chip" id="styleChip">Hatchback</span>
+          <span class="chip live" id="liveChip"><i></i>Live</span>
+        </div>
+        <div class="reveal" id="reveal" hidden>
+          <small>Estimated fair price</small>
+          <div class="price" id="price">₹0</div>
+          <div class="range" id="rangeText"></div>
+        </div>
+      </div>
+
+      <div class="glass result" id="result" hidden>
+        <div class="result-top">
+          <div><small>Fair-price range</small><div class="range-big" id="rangeBig"></div></div>
+          <div class="badges"><span class="seg" id="segBadge"></span><span class="verdict" id="verdict" hidden></span></div>
+        </div>
+        <div class="bar" id="bar"><span class="band" id="band"></span><span class="mid" id="mid"></span><span class="ask" id="ask" hidden></span></div>
+        <div class="bar-legend"><span id="lowL"></span><span id="highL"></span></div>
+        <p class="hint" id="hint"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts" id="charts" hidden>
+    <div class="glass chart"><h3>Value over time</h3><p>Model trend: predicted price of this exact car across the model years in the dataset.</p><canvas id="ageChart"></canvas></div>
+    <div class="glass chart"><h3>Value vs kilometres</h3><p>How much each additional 25,000 km costs in resale value.</p><canvas id="kmChart"></canvas></div>
+    <div class="glass chart wide"><h3>Similar listings in the data</h3><div id="similar" class="similar"></div></div>
+  </div>
+</section>
+
+<section class="cloudsec" id="cloud">
+  <div class="section-head">
+    <span class="eyebrow">K-Means segmentation</span>
+    <h2>The market in 3D</h2>
+    <p>Every point is a real listing: age on one axis, price on another, power on the third. K-Means groups them into Budget, Mid-range and Premium. Drag to rotate, scroll to zoom. Your car glows white.</p>
+  </div>
+  <div class="cloud-wrap glass">
+    <canvas id="cloudCanvas" aria-label="3D scatter of listings by segment"></canvas>
+    <div class="tip" id="tip" hidden></div>
+    <div class="legend" id="legend"></div>
+    <div class="axes"><span>X · Age</span><span>Y · Price</span><span>Z · Power</span></div>
+  </div>
+  <div class="seg-cards" id="segCards"></div>
+</section>
+
+<section class="modelsec" id="models">
+  <div class="section-head">
+    <span class="eyebrow">Model comparison</span>
+    <h2>Bagging vs Boosting</h2>
+    <p>Test-set RMSE in rupees (lower is better). Tuning improves every ensemble, and XGBoost wins. The deployed model is retrained on all data.</p>
+  </div>
+  <div class="cloud-wrap glass bars-wrap">
+    <canvas id="barCanvas" aria-label="3D bar chart of model errors"></canvas>
+  </div>
+  <div class="table glass" id="modelTable"></div>
+</section>
+</main>
+
+<footer>
+  <div>AutoWorth · Linear Regression, KNN, K-Means, Random Forest, Gradient Boosting, XGBoost · FastAPI + Three.js</div>
+  <div class="muted">Estimates are statistical guidance from historical listings, not a valuation or a guarantee.</div>
+</footer>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>
