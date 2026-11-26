@@ -19,6 +19,7 @@ REF_YEAR = 2026  # model was trained with car_age = 2026 - year
 model = joblib.load(ART / "model.joblib")
 seg = joblib.load(ART / "segments.joblib")
 meta = json.load(open(ART / "meta.json"))
+listings = pd.read_csv(ART / "listings.csv")
 
 app = FastAPI(title="Used Car Fair-Price Bot", version="2.0")
 
