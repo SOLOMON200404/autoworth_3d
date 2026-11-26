@@ -20,7 +20,21 @@ function makeRenderer(canvas) {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (w && h) r.setSize(w, h, false);
     return r;
-  } catch (e) { console.warn("WebGL unavailable", e); return null; }
+  } catch (e) { console.warn("WebGL unavailable; showing animated car fallback", e); makeCarFallback(canvas); return null; }
+}
+function makeCarFallback(canvas) {
+  const root = document.createElement("div");
+  root.className = "car-fallback " + (canvas.id === "heroCanvas" ? "hero-fallback" : "studio-fallback");
+  root.setAttribute("aria-hidden", "true");
+  root.innerHTML = `<div class="fallback-platform"></div><div class="fallback-spin"><div class="fallback-car">
+    <div class="fallback-shell"></div><div class="fallback-cabin"></div><div class="fallback-glass"></div>
+    <i class="fallback-wheel wheel-a"></i><i class="fallback-wheel wheel-b"></i>
+    <i class="fallback-wheel wheel-c"></i><i class="fallback-wheel wheel-d"></i>
+    <i class="fallback-light light-a"></i><i class="fallback-light light-b"></i>
+  </div></div>`;
+  root.style.setProperty("--car-color", canvas.id === "heroCanvas" ? COLORS.Crimson : COLORS.Pearl);
+  canvas.after(root); canvas.style.opacity = "0"; canvas._carFallback = root;
+  return root;
 }
 function fit(renderer, camera, canvas) {
   const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -175,7 +189,8 @@ function initHero() {
 /* ---------- STUDIO scene (reactive car) ---------- */
 const studio = {};
 function initStudio() {
-  const canvas = $("carCanvas"); const r = makeRenderer(canvas); if (!r) return;
+  const canvas = $("carCanvas"); studio.canvas = canvas; studio.color = COLORS.Pearl;
+  const r = makeRenderer(canvas); if (!r) { studio.styleKey = "hatch"; return; }
   const scene = new THREE.Scene(); scene.environment = envMap(r);
   const cam = new THREE.PerspectiveCamera(34, 1, 0.1, 100); cam.position.set(5.6, 2.4, 6.6);
   const controls = new OrbitControls(cam, canvas);
@@ -213,14 +228,23 @@ function initStudio() {
   })();
 }
 function setCar(styleKey) {
-  if (!studio.r) return;
+  if (!studio.r) {
+    studio.styleKey = styleKey;
+    if (studio.canvas?._carFallback) studio.canvas._carFallback.dataset.style = styleKey;
+    if ($("styleChip")) $("styleChip").textContent = STYLES[styleKey].name;
+    return;
+  }
   if (studio.car) { studio.scene.remove(studio.car); disposeGroup(studio.car); }
   const car = buildCar(styleKey, studio.color); studio.car = car; studio.styleKey = styleKey;
   car.scale.setScalar(0.01); studio.targetScale = styleKey === "suv" ? 0.95 : styleKey === "sedan" ? 0.92 : 1.02;
   studio.scene.add(car); studio.spin = 2;
   $("styleChip").textContent = STYLES[styleKey].name;
 }
-function setPaint(hex) { studio.color = hex; if (studio.car) studio.car.userData.paint.color.set(hex); }
+function setPaint(hex) {
+  studio.color = hex;
+  if (studio.car) studio.car.userData.paint.color.set(hex);
+  if (studio.canvas?._carFallback) studio.canvas._carFallback.style.setProperty("--car-color", hex);
+}
 function burst(color) {
   if (!studio.r) return;
   const ring = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.08, 96), new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.9, depthWrite: false }));

@@ -61,6 +61,24 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .colors button:hover{transform:scale(1.12)}
 
 .stage{position:relative;aspect-ratio:16/11;overflow:hidden;background:radial-gradient(70% 70% at 50% 40%,#16204a 0,#0a0f20 75%)}
+.car-fallback{position:absolute;inset:0;display:grid;place-items:center;perspective:1000px;pointer-events:none;overflow:hidden}
+.hero-fallback{z-index:0;inset:0 0 auto auto;width:62%;height:100vh}
+.fallback-platform{position:absolute;width:min(460px,78vw);height:min(460px,78vw);border-radius:50%;border:2px solid #4de2ff66;box-shadow:0 0 34px #4de2ff35,inset 0 0 40px #8b7bff33;background:radial-gradient(ellipse,#1b2648aa,#070a1200 70%);transform:rotateX(78deg) translateY(27%)}
+.fallback-spin{position:relative;width:min(410px,84vw);height:240px;transform-style:preserve-3d;animation:fallback-rotate 12s linear infinite}
+.hero-fallback .fallback-spin{width:min(470px,86vw);height:280px}
+.fallback-car{position:absolute;inset:0;transform-style:preserve-3d;--shell-h:76px}
+.fallback-shell,.fallback-cabin,.fallback-glass{position:absolute;transform-style:preserve-3d;backface-visibility:visible}
+.fallback-shell{left:5%;top:43%;width:90%;height:34%;clip-path:polygon(0 46%,4% 18%,21% 8%,36% 4%,66% 7%,80% 24%,94% 35%,100% 68%,96% 90%,4% 90%);background:linear-gradient(180deg,color-mix(in srgb,var(--car-color),white 35%),var(--car-color) 45%,color-mix(in srgb,var(--car-color),black 25%));filter:drop-shadow(0 14px 14px #0009);transform:translateZ(45px)}
+.fallback-shell::after{content:"";position:absolute;inset:0;background:inherit;transform:translateZ(-90px) rotateY(180deg)}
+.fallback-cabin{left:28%;top:18%;width:52%;height:43%;clip-path:polygon(8% 100%,25% 0,76% 0,100% 100%);background:linear-gradient(150deg,color-mix(in srgb,var(--car-color),white 36%),color-mix(in srgb,var(--car-color),black 16%));transform:translateZ(34px)}
+.fallback-cabin::after{content:"";position:absolute;inset:0;background:inherit;transform:translateZ(-68px) rotateY(180deg)}
+.fallback-glass{left:34%;top:22%;width:40%;height:31%;clip-path:polygon(10% 100%,27% 0,72% 0,100% 100%);background:linear-gradient(135deg,#a9e9ffdd,#10172de8 48%,#7ea5c2cc);transform:translateZ(36px)}
+.fallback-glass::after{content:"";position:absolute;inset:0;background:inherit;transform:translateZ(-72px) rotateY(180deg)}
+.fallback-wheel{position:absolute;top:65%;width:17%;aspect-ratio:1;border-radius:50%;border:8px solid #10131d;background:radial-gradient(circle,#bfc8d5 0 20%,#384258 23% 43%,#080b12 46%);box-shadow:0 2px 9px #000;transform:translateZ(51px)}
+.wheel-a{left:17%}.wheel-b{right:17%}.wheel-c{left:17%;transform:translateZ(-51px) rotateY(180deg)}.wheel-d{right:17%;transform:translateZ(-51px) rotateY(180deg)}
+.fallback-light{position:absolute;top:57%;width:5%;height:8%;border-radius:50%;background:#ddf7ff;box-shadow:0 0 16px #9eeaff;transform:translateZ(47px)}
+.light-a{left:4%}.light-b{right:4%;background:#ff365e;box-shadow:0 0 14px #ff365e}
+@keyframes fallback-rotate{to{transform:rotateY(360deg)}}
 .stage-hud{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;pointer-events:none}
 .chip{background:#0b1226cc;border:1px solid var(--line);padding:5px 12px;border-radius:999px;font:600 12px var(--head);letter-spacing:.06em}
 .chip.live{display:flex;align-items:center;gap:7px;color:var(--good)}
@@ -129,4 +147,4 @@ footer{padding:50px clamp(16px,5vw,72px) 70px;text-align:center;color:#b9c2de;fo
   .hero{align-items:end;padding-bottom:90px}
   .hero-copy{max-width:100%}
 }
-@media (prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto}.car-fallback .fallback-spin{animation:fallback-rotate 12s linear infinite!important}}
