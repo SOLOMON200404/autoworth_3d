@@ -19,8 +19,6 @@ REF_YEAR = 2026  # model was trained with car_age = 2026 - year
 model = joblib.load(ART / "model.joblib")
 seg = joblib.load(ART / "segments.joblib")
 meta = json.load(open(ART / "meta.json"))
-results = pd.read_csv(ART / "results.csv")
-listings = pd.read_csv(ART / "listings.csv")
 
 app = FastAPI(title="Used Car Fair-Price Bot", version="2.0")
 
@@ -66,25 +64,8 @@ def health():
 @app.get("/api/meta")
 def get_meta():
     keys = ["brands", "fuel", "seller_type", "transmission", "owner", "seats", "defaults", "ranges",
-            "best_model", "band", "seg_profile"]
+            "best_model", "band"]
     return {k: meta[k] for k in keys}
-
-
-@app.get("/api/models")
-def get_models():
-    r = results.copy()
-    r["kind"] = np.where(r["Model"].str.contains("Linear|KNN"), "baseline",
-                         np.where(r["Model"].str.contains("Bagging"), "bagging", "boosting"))
-    r["tuned"] = r["Model"].str.contains("tuned")
-    return r.rename(columns={"Model": "model", "RMSE (INR)": "rmse", "R2 (log)": "r2"}).to_dict("records")
-
-
-@app.get("/api/cloud")
-def get_cloud(n: int = 1400):
-    s = listings.sample(min(n, len(listings)), random_state=7)
-    return {"points": [
-        {"age": int(a), "price": int(p), "power": round(float(w), 1), "engine": int(e), "seg": g, "brand": b}
-        for a, p, w, e, g, b in zip(s.car_age, s.selling_price, s.max_power, s.engine, s.segment, s.brand)]}
 
 
 @app.post("/api/predict")

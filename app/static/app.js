@@ -230,105 +230,6 @@ function burst(color) {
   studio.scene.add(pts); studio.bursts.push({ type: "spark", mesh: pts, v, life: 0 }); studio.spin = 3;
 }
 
-/* ---------- CLOUD scene ---------- */
-const cloud = { marker: null };
-async function initCloud(meta) {
-  const canvas = $("cloudCanvas"); const r = makeRenderer(canvas); if (!r) return;
-  const data = (await (await fetch("/api/cloud?n=1500")).json()).points;
-  const scene = new THREE.Scene(); scene.environment = envMap(r);
-  const cam = new THREE.PerspectiveCamera(45, 1, 0.1, 200); cam.position.set(7.5, 4.6, 9);
-  const controls = new OrbitControls(cam, canvas); controls.enableDamping = true; controls.autoRotate = !REDUCED; controls.autoRotateSpeed = 0.7; controls.maxDistance = 30; controls.minDistance = 6;
-  scene.add(new THREE.AmbientLight(0xffffff, 0.8)); const dl = new THREE.DirectionalLight(0xffffff, 2); dl.position.set(5, 10, 5); scene.add(dl);
-  // mapping
-  const X = (a) => (Math.min(a, 30) / 30) * 10 - 5;
-  const Y = (p) => ((Math.log10(p) - Math.log10(5e4)) / (Math.log10(3e6) - Math.log10(5e4))) * 6 - 3;
-  const Z = (w) => ((Math.min(Math.max(w, 30), 250) - 30) / 220) * 8 - 4;
-  cloud.map = { X, Y, Z };
-  const geo = new THREE.SphereGeometry(0.11, 12, 12);
-  const mat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.92 });
-  const mesh = new THREE.InstancedMesh(geo, mat, data.length); const m4 = new THREE.Matrix4(), col = new THREE.Color();
-  data.forEach((d, i) => { m4.setPosition(X(d.age) + (Math.random() - 0.5) * 0.12, Y(d.price), Z(d.power)); mesh.setMatrixAt(i, m4); col.setHex(SEG_COLOR[d.seg]); mesh.setColorAt(i, col); });
-  mesh.instanceColor.needsUpdate = true; scene.add(mesh);
-  // grid + axes
-  const grid = new THREE.GridHelper(10, 10, 0x2b3a73, 0x1b2547); grid.position.y = -3.01; grid.scale.z = 0.8; scene.add(grid);
-  const ax = new THREE.Group(); const lm = new THREE.LineBasicMaterial({ color: 0x3a4a8a });
-  [[[-5, -3, -4], [5, -3, -4]], [[-5, -3, -4], [-5, 3, -4]], [[-5, -3, -4], [-5, -3, 4]]].forEach(([a, b]) => ax.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a), new THREE.Vector3(...b)]), lm)));
-  scene.add(ax);
-  [[0, "0 yrs"], [30, "30 yrs"]].forEach(([a, t]) => { const s = textSprite(t, { scale: 1.1, size: 56, color: "#9fb0e0" }); s.position.set(X(a), -3.6, -4.6); scene.add(s); });
-  [5e4, 5e5, 3e6].forEach((p) => { const s = textSprite(lakh(p), { scale: 1.1, size: 56, color: "#9fb0e0" }); s.position.set(-6.3, Y(p), -4); scene.add(s); });
-  [[30, "30 bhp"], [250, "250 bhp"]].forEach(([w, t]) => { const s = textSprite(t, { scale: 1.1, size: 56, color: "#9fb0e0" }); s.position.set(-6.2, -3.6, Z(w)); scene.add(s); });
-  // my-car marker
-  const mk = new THREE.Group();
-  const core = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 24), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18, depthWrite: false }));
-  const stem = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -8, 0)]), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 }));
-  mk.add(core, halo, stem); mk.visible = false; scene.add(mk); cloud.marker = mk; cloud.halo = halo;
-  // hover
-  const ray = new THREE.Raycaster(); ray.params.Points = { threshold: 0.1 }; const mouse = new THREE.Vector2(); const tip = $("tip");
-  canvas.addEventListener("pointermove", (e) => {
-    const b = canvas.getBoundingClientRect(); mouse.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1);
-    ray.setFromCamera(mouse, cam); const hit = ray.intersectObject(mesh)[0];
-    if (hit && hit.instanceId != null) { const d = data[hit.instanceId]; tip.hidden = false; tip.style.left = e.clientX - b.left + 14 + "px"; tip.style.top = e.clientY - b.top + 14 + "px"; tip.innerHTML = `<b>${d.brand}</b> · ${d.age} yrs · ${d.power} bhp<br>${inr(d.price)} · <span style="color:#${SEG_COLOR[d.seg].toString(16).padStart(6, "0")}">${d.seg}</span>`; canvas.style.cursor = "pointer"; }
-    else { tip.hidden = true; canvas.style.cursor = "grab"; }
-  });
-  canvas.addEventListener("pointerleave", () => (tip.hidden = true));
-  const vis = whenVisible(canvas, () => {}); const clock = new THREE.Clock();
-  // intro: points fly in
-  let intro = 0;
-  (function loop() {
-    requestAnimationFrame(loop); if (!vis()) return;
-    fit(r, cam, canvas); const t = clock.getElapsedTime(); controls.update();
-    intro = Math.min(1, intro + 0.02); const e = 1 - Math.pow(1 - intro, 3); mesh.scale.set(1, e, 1); mesh.position.y = -3 * (1 - e) * 0;
-    if (mk.visible) { halo.scale.setScalar(1 + Math.sin(t * 3) * 0.25); }
-    r.render(scene, cam);
-  })();
-}
-function placeMarker(age, price, power) {
-  if (!cloud.marker) return; const { X, Y, Z } = cloud.map;
-  cloud.marker.visible = true; cloud.marker.position.set(X(age), Y(price), Z(power));
-}
-
-/* ---------- MODEL BARS scene ---------- */
-async function initBars() {
-  const canvas = $("barCanvas"); const r = makeRenderer(canvas);
-  const rows = await (await fetch("/api/models")).json();
-  buildTable(rows); if (!r) return;
-  const scene = new THREE.Scene(); scene.environment = envMap(r);
-  const cam = new THREE.PerspectiveCamera(40, 1, 0.1, 100); cam.position.set(5.5, 4.2, 9.5);
-  const controls = new OrbitControls(cam, canvas); controls.enableDamping = true; controls.autoRotate = !REDUCED; controls.autoRotateSpeed = 0.5; controls.target.set(0, 1.6, 0); controls.maxPolarAngle = Math.PI / 2.1;
-  scene.add(new THREE.AmbientLight(0xffffff, 0.8)); const dl = new THREE.DirectionalLight(0xffffff, 2.2); dl.position.set(5, 9, 6); scene.add(dl);
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(7.2, 64), new THREE.MeshStandardMaterial({ color: 0x0a1020, metalness: 0.2, roughness: 0.8 })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
-  const KC = { baseline: 0x7d8bb0, bagging: 0xffb454, boosting: 0x4de2ff };
-  const maxV = Math.max(...rows.map((x) => x.rmse)), minV = Math.min(...rows.map((x) => x.rmse));
-  const short = { "Linear Regression": "Linear", "KNN (k=4)": "KNN" };
-  const bars = rows.map((row, i) => {
-    const h = 0.4 + ((row.rmse - minV * 0.8) / (maxV - minV * 0.8)) * 4.2;
-    const best = row.rmse === minV;
-    const mat = new THREE.MeshPhysicalMaterial({ color: best ? 0x35e0a1 : KC[row.kind], metalness: 0.4, roughness: 0.25, clearcoat: 0.8, transparent: true, opacity: row.tuned || row.kind === "baseline" ? 1 : 0.55, emissive: best ? 0x35e0a1 : 0x000000, emissiveIntensity: best ? 0.35 : 0 });
-    const m = new THREE.Mesh(new THREE.BoxGeometry(0.72, 1, 0.72), m4(mat)); const x = (i - (rows.length - 1) / 2) * 1.1;
-    m.position.x = x; m.userData = { h, delay: i * 0.12, row }; m.scale.y = 0.001; scene.add(m);
-    const nm = row.model.replace("Bagging: Random Forest", "RF").replace("Boosting: Gradient Boosting", "GB").replace("Boosting: XGBoost", "XGB").replace("Linear Regression", "Linear").replace(" (default)", " · default").replace(" (tuned)", " · tuned").replace(" (k=4)", "");
-    const lab = textSprite(nm, { scale: 0.6, size: 62, color: best ? "#35e0a1" : "#aab4d6" }); lab.position.set(x, 0.1, 0.95); lab.center.set(0.5, 1); lab.material.depthTest = false; scene.add(lab);
-    const val = textSprite(Math.round(row.rmse / 1000) + "k", { scale: 0.7, size: 64, color: "#fff" }); val.position.set(x, h + 0.5, 0); val.visible = false; scene.add(val); m.userData.val = val;
-    return m;
-  });
-  function m4(m) { return m; }
-  const vis = whenVisible(canvas, () => {}); const clock = new THREE.Clock(); let started = false;
-  new IntersectionObserver((e) => { if (e[0].isIntersecting) { started = true; clock.start(); } }, { threshold: 0.3 }).observe(canvas);
-  (function loop() {
-    requestAnimationFrame(loop); if (!vis()) return; fit(r, cam, canvas); controls.update();
-    const t = started ? clock.getElapsedTime() : 0;
-    bars.forEach((b) => { const k = Math.min(1, Math.max(0, (t - b.userData.delay) / 0.9)); const e = 1 - Math.pow(1 - k, 4); b.scale.y = Math.max(0.001, b.userData.h * e); b.position.y = b.scale.y / 2; b.userData.val.visible = k > 0.95; });
-    r.render(scene, cam);
-  })();
-}
-function buildTable(rows) {
-  const best = Math.min(...rows.map((r) => r.rmse));
-  const sorted = [...rows].sort((a, b) => a.rmse - b.rmse);
-  $("modelTable").innerHTML = `<table><thead><tr><th>Model</th><th>Family</th><th>RMSE</th><th>R² (log price)</th></tr></thead><tbody>` +
-    sorted.map((r) => `<tr class="${r.rmse === best ? "best" : ""}"><td>${r.model}</td><td><span class="pill">${r.kind}</span></td><td>${inr(r.rmse)}</td><td>${r.r2.toFixed(3)}</td></tr>`).join("") + `</tbody></table>`;
-}
-
 /* ---------- 2D charts ---------- */
 function lineChart(canvas, pts, { xLabel, fmtX, highlight }) {
   const dpr = Math.min(devicePixelRatio, 2); const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -406,7 +307,6 @@ function show(res, body) {
       : res.verdict.tone === "bad" ? `The asking price is about ${res.verdict.pct}% above fair value. A reasonable counter-offer is near ${inr(res.price)}.`
       : `The asking price sits inside the fair range (${res.verdict.pct}% from the estimate), so there's limited room to negotiate.`;
   } else { v.hidden = true; ask.hidden = true; $("hint").textContent = "Add the seller's asking price to see whether it's a deal."; }
-  placeMarker(REF - body.year, res.price, body.max_power);
   const c1 = smooth(res.age_curve.filter((p) => p.year <= YMAX).reverse().map((p) => ({ x: p.year, y: p.price })));
   lineChart($("ageChart"), c1, { fmtX: (x) => x, highlight: body.year });
   lineChart($("kmChart"), smooth(res.km_curve.map((p) => ({ x: p.km, y: p.price }))), { fmtX: (x) => x / 1000 + "k", highlight: Math.round(body.km_driven / 25000) * 25000 });
@@ -431,13 +331,10 @@ async function boot() {
   $("form").addEventListener("submit", (e) => { e.preventDefault(); schedule(true); });
   $("colors").innerHTML = Object.entries(COLORS).map(([n, c]) => `<button type="button" role="radio" aria-label="${n}" aria-checked="${n === selectedColor}" data-n="${n}" style="background:${c};color:${c}"></button>`).join("");
   $("colors").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; selectedColor = b.dataset.n; [...$("colors").children].forEach((x) => x.setAttribute("aria-checked", x === b)); setPaint(COLORS[selectedColor]); });
-  // hero stats + segment cards
+  // hero stats
   const best = META.best_model.replace("Boosting: ", "");
   $("heroStats").innerHTML = `<div><b>6.4k</b><span>real listings</span></div><div><b>${best}</b><span>champion model</span></div><div><b>±${Math.round(META.band * 100)}%</b><span>80% price band</span></div>`;
-  const sc = { Budget: "#4de2ff", "Mid-range": "#ffb454", Premium: "#b58bff" };
-  $("segCards").innerHTML = META.seg_profile.map((s) => `<div class="seg-card" style="--c:${sc[s.segment]}"><h4>${s.segment}</h4><b>${lakh(s.selling_price)}</b><span>median price · ${Math.round(s.engine)} cc · ${Math.round(s.max_power)} bhp · ${s.count.toLocaleString("en-IN")} cars</span></div>`).join("");
-  $("legend").innerHTML = Object.entries(sc).map(([n, c]) => `<span><i style="background:${c}"></i>${n}</span>`).join("") + `<span><i style="background:#fff"></i>Your car</span>`;
-  initHero(); initStudio(); initCloud(META); initBars();
+  initHero(); initStudio();
   schedule(true);
 }
 boot();

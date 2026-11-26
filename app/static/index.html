@@ -17,7 +17,7 @@
 <nav class="nav">
   <a class="brand" href="#top"><span class="dot"></span>AutoWorth</a>
   <div class="links">
-    <a href="#studio">Estimator</a><a href="#cloud">Market map</a><a href="#models">Models</a>
+    <a href="#studio">Estimator</a>
   </div>
 </nav>
 
@@ -29,7 +29,6 @@
     <p>A machine-learning price engine trained on thousands of real listings. Configure a car, watch it come alive in 3D, and get a fair-price range in seconds.</p>
     <div class="cta">
       <a class="btn primary" href="#studio">Estimate a price</a>
-      <a class="btn ghost" href="#cloud">Explore the market</a>
     </div>
     <div class="stats" id="heroStats"></div>
   </div>
@@ -104,36 +103,10 @@
   </div>
 </section>
 
-<section class="cloudsec" id="cloud">
-  <div class="section-head">
-    <span class="eyebrow">K-Means segmentation</span>
-    <h2>The market in 3D</h2>
-    <p>Every point is a real listing: age on one axis, price on another, power on the third. K-Means groups them into Budget, Mid-range and Premium. Drag to rotate, scroll to zoom. Your car glows white.</p>
-  </div>
-  <div class="cloud-wrap glass">
-    <canvas id="cloudCanvas" aria-label="3D scatter of listings by segment"></canvas>
-    <div class="tip" id="tip" hidden></div>
-    <div class="legend" id="legend"></div>
-    <div class="axes"><span>X · Age</span><span>Y · Price</span><span>Z · Power</span></div>
-  </div>
-  <div class="seg-cards" id="segCards"></div>
-</section>
-
-<section class="modelsec" id="models">
-  <div class="section-head">
-    <span class="eyebrow">Model comparison</span>
-    <h2>Bagging vs Boosting</h2>
-    <p>Test-set RMSE in rupees (lower is better). Tuning improves every ensemble, and XGBoost wins. The deployed model is retrained on all data.</p>
-  </div>
-  <div class="cloud-wrap glass bars-wrap">
-    <canvas id="barCanvas" aria-label="3D bar chart of model errors"></canvas>
-  </div>
-  <div class="table glass" id="modelTable"></div>
-</section>
 </main>
 
 <footer>
-  <div>AutoWorth · Linear Regression, KNN, K-Means, Random Forest, Gradient Boosting, XGBoost · FastAPI + Three.js</div>
+  <div>AutoWorth · AI-powered used car price estimates · FastAPI + Three.js</div>
   <div class="muted">Estimates are statistical guidance from historical listings, not a valuation or a guarantee.</div>
 </footer>
 
