@@ -17,6 +17,8 @@ function makeRenderer(canvas) {
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 1.05;
     r.outputColorSpace = THREE.SRGBColorSpace;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (w && h) r.setSize(w, h, false);
     return r;
   } catch (e) { console.warn("WebGL unavailable", e); return null; }
 }
@@ -25,8 +27,8 @@ function fit(renderer, camera, canvas) {
   if (!w || !h) return;
   if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) {
     renderer.setSize(w, h, false);
-    camera.aspect = w / h; camera.updateProjectionMatrix();
   }
+  if (camera.aspect !== w / h) { camera.aspect = w / h; camera.updateProjectionMatrix(); }
 }
 function whenVisible(el, cb) {
   let vis = true;
@@ -155,7 +157,7 @@ function initHero() {
     requestAnimationFrame(loop); if (!vis()) return;
     fit(r, cam, canvas); const t = clock.getElapsedTime();
     const wide = canvas.clientWidth / canvas.clientHeight > 1.15;
-    car.rotation.y = REDUCED ? 0.6 : t * 0.35 + 0.6;
+    car.rotation.y = t * 0.35 + 0.6;
     car.position.x = wide ? 3.4 : 0; car.position.y = 0.02 + Math.sin(t * 1.4) * 0.02;
     plat.g.position.x = car.position.x;
     car.userData.paint.color.lerp(target, 0.04);
@@ -178,7 +180,7 @@ function initStudio() {
   const cam = new THREE.PerspectiveCamera(34, 1, 0.1, 100); cam.position.set(5.6, 2.4, 6.6);
   const controls = new OrbitControls(cam, canvas);
   controls.enableDamping = true; controls.enablePan = false; controls.minDistance = 4.5; controls.maxDistance = 12;
-  controls.maxPolarAngle = Math.PI / 2.05; controls.target.set(0, 0.35, 0); controls.autoRotate = !REDUCED; controls.autoRotateSpeed = 1.6;
+  controls.maxPolarAngle = Math.PI / 2.05; controls.target.set(0, 0.35, 0); controls.autoRotate = true; controls.autoRotateSpeed = 1.6;
   const plat = addPlatform(scene);
   scene.add(new THREE.AmbientLight(0xffffff, 0.4));
   const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(4, 6, 3); scene.add(key);
